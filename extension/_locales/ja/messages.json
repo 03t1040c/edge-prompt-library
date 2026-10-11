@@ -1,0 +1,5 @@
+{
+  "extensionName": {"message": "Prompt Library"},
+  "extensionDescription": {"message": "軽量なローカル専用プロンプト集。検索・タグ・お気に入りで整理してワンクリックでコピー。アカウント不要、外部通信なし。"},
+  "openLibrary": {"message": "Prompt Libraryを開く"}
+}

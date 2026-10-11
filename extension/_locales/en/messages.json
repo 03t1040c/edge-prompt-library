@@ -1,0 +1,5 @@
+{
+  "extensionName": {"message": "Prompt Library"},
+  "extensionDescription": {"message": "A fast, local-only prompt library. Search, tag, favorite, and copy prompts in one click. No accounts or external connections."},
+  "openLibrary": {"message": "Open Prompt Library"}
+}
