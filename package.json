@@ -1,11 +1,13 @@
 {
   "name": "edge-prompt-library",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/core.test.mjs",
     "preview": "node scripts/preview.mjs",
-    "package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
+    "check-release": "node scripts/check-release.mjs",
+    "privacy-page": "node scripts/privacy-page.mjs",
+    "package": "node scripts/check-release.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1"
   }
 }

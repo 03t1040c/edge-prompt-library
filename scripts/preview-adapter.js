@@ -1,6 +1,7 @@
 // Separate localhost-only mock; never shipped with the extension.
 if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
   window.chrome = {
+    runtime: { getManifest() { return { version: 'preview' }; } },
     storage: { local: {
       async get(keys) { const store = JSON.parse(localStorage.getItem('prompt-library-preview') || '{}'); return Object.fromEntries((Array.isArray(keys) ? keys : [keys]).map(key => [key, store[key]])); },
       async set(values) { const store = JSON.parse(localStorage.getItem('prompt-library-preview') || '{}'); localStorage.setItem('prompt-library-preview', JSON.stringify({ ...store, ...values })); },

@@ -1,6 +1,6 @@
 # Prompt Library — プライバシーポリシー / Privacy Policy
 
-最終更新 / Last updated: 2026-10-11
+最終更新 / Last updated: 2026-10-18
 
 ## 日本語
 
@@ -20,7 +20,9 @@ Prompt Libraryは、Microsoft Edge内で動作するローカル専用のプロ�
 
 明示的な操作によって、ブラウザーのダウンロード機能でJSONファイルを書き出します。バックアップには全プロンプト、設定、使用履歴が含まれます。共有用のプロンプト集には、選択したプロンプトのタイトル・本文・タグ・IDが含まれ、お気に入り状態・設定・使用履歴は含まれません。ファイルの送信や共有は、この拡張機能では行いません。
 
-### 削除
+### 閲覧・変更・削除
+
+保存したプロンプトはライブラリーと編集画面で閲覧・変更できます。設定画面からJSONバックアップを書き出せます。端末間の自動同期は行いません。
 
 プロンプトは編集画面から削除できます。拡張機能をアンインストールすると、ブラウザーの仕様に従って端末内の拡張機能データが削除されます。書き出し済みJSONファイルやクリップボードの内容は別途管理してください。
 
@@ -42,6 +44,8 @@ When you choose to copy a prompt, the extension writes its content to the operat
 
 At your explicit request, the extension exports JSON files using the browser's download feature. Backups include all prompts, settings, and usage history. Shared collections contain the selected prompts' titles, content, tags, and IDs, excluding favorite status, settings, and usage history. The extension does not send or share these files.
 
-### Deletion
+### Access, changes, and deletion
+
+You can view and edit saved prompts in the library and editor, and export a JSON backup from Settings. The extension does not automatically synchronize data between devices.
 
 You can delete individual prompts from the editor. Uninstalling the extension removes its local extension data according to the browser's behavior. Exported JSON files and clipboard contents must be managed separately.

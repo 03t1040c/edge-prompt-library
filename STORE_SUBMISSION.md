@@ -1,6 +1,6 @@
 # Microsoft Edge Add-ons 申請前の確認
 
-確認日：2026-10-11
+確認日：2026-10-18
 
 ## 現在の状態
 
@@ -11,18 +11,55 @@
 - 英語のmanifest説明は125文字に修正済み（上限132文字）。
 - ユニットテスト10件、ブラウザーテスト38項目が成功。
 - 掲載用ロゴ：`store-assets/logo-300.png`。
-- 申請パッケージ：`dist/edge-prompt-library-0.1.0.zip`。manifestはZIP直下。
+- 申請パッケージ：`dist/edge-prompt-library-1.0.0.zip`。manifestはZIP直下。古い0.1.0ではなくこちらを提出してください。
+- GitHub Pages用プライバシーポリシー：`docs/index.html`。`PRIVACY.md` から生成しています。
+- 日本語の掲載画像：`store-assets/library-ja-1280x800.png`、`store-assets/settings-ja-1280x800.png`。
+- 英語の掲載画像：`store-assets/library-en-1280x800.png`、`store-assets/settings-en-1280x800.png`。
+- 掲載画像はサンプルデータを入れた実際の拡張機能の画面に説明枠を付けたものです。拡張機能パッケージに枠やサンプルデータは含みません。
+- バージョン・説明の文字数・権限・アイコン・掲載画像を自動検証する `npm.cmd run check-release` を追加済み。
 
 ## 申請前に用意するもの
 
 1. Microsoft Edge拡張機能の開発者アカウントをPartner Centerで用意。
-2. `PRIVACY.md` をログイン不要の公開URLで掲載し、申請フォームにURLを入力。
+2. 下の手順で `docs/index.html` をGitHub Pagesで公開し、申請フォームにURLを入力。
 3. 日本語・英語のストア説明を入力。下の文章をそのまま使えます。
 4. 掲載用ロゴを登録。現在の300×300px PNGを使用できます。
-5. 推奨：日英のスクリーンショットを用意。規格は640×480または1280×800px、最大6枚。`test-results` の440×600px画像は、そのままでは掲載規格に合いません。縦横を引き伸ばさず、規定サイズの枠に余白とともに配置してください。
+5. 日英それぞれ上記の1280×800px画像を2枚登録できます。スクリーンショット自体は任意ですが、規定サイズで準備済みです。`test-results` の440×600px画像は提出しません。
 6. 推奨：問い合わせ用メールアドレス、またはサポートページを登録。
 
-バージョン0.1.0のままでも申請できます。正式リリースを1.0.0と呼ぶ場合は、manifest・設定画面・パッケージ名をそろえて更新してから提出してください。
+正式版は1.0.0にそろえました。設定画面はmanifestからバージョンを取得するため、今後の更新時にも表示が一致します。
+
+## GitHub Pagesでポリシーを公開
+
+Gitのoriginに設定されているリポジトリは `03t1040c/edge-prompt-library` です。以下はそのリポジトリに `/docs` を配置する前提です。リポジトリの公開状態とPagesの有効化は、まだ確認できていません。
+
+1. 変更済みの `docs/index.html` と `docs/.nojekyll` をGitHubリポジトリに反映します。GitHubのWeb画面からアップロードしても構いません。`.nojekyll` は空ファイルで、独自の静的HTMLをそのまま配信するためのものです。
+2. リポジトリの **Settings → Pages** を開きます。
+3. **Build and deployment → Source → Deploy from a branch** を選びます。
+4. 公開用ブランチ（通常は `main`）と **`/docs`** を選び、**Save**。
+5. ビルドが成功したら **Visit site** で表示します。
+6. ログアウトしたブラウザーやInPrivateでも、日本語・Englishの本文が読めることを確認します。
+
+設定後の想定URLは **`https://03t1040c.github.io/edge-prompt-library/`** です。現在公開済みのURLとして案内しているものではありません。独自ドメインや別リポジトリを使う場合は、Pagesに表示された実際のURLを申請に使用してください。
+
+GitHub FreeでPagesを使う場合、公開元のリポジトリはpublicである必要があります。ソースコード全体を公開したくない場合は、ポリシー用の別のpublicリポジトリにこのHTMLだけを配置する方法もあります。既存リポジトリの公開設定は自動では変更していません。
+
+このHTMLの配信はポリシー公開用です。拡張機能が起動時にGitHubへアクセスすることはなく、外部通信なしの動作は変わりません。
+
+## Partner Centerでの登録・提出
+
+1. [Partner Center](https://partner.microsoft.com/dashboard)に**個人用Microsoftアカウント（MSA）**でサインインします。Microsoft Edgeプログラムの登録料は無料です。仕事・学校アカウントだけではEdgeプログラムに登録できません。
+2. 初回は **Account settings → Programs → Microsoft Edge → Get started**。個人制作として公開するなら **Individual** を選びます。会社として公開する場合は **Company** を選び、会社の確認手続きを進めます。国・地域とアカウント種別は登録後に変更できないため、入力時に確認してください。
+3. 登録確認が完了したら **Home → Workspaces → Edge → Create new extension**。
+4. **Packages** に `dist/edge-prompt-library-1.0.0.zip` をアップロードし、検証結果を確認します。
+5. **Availability** では一般公開なら **Public**。検索には出さずURLで配布する場合は **Hidden**。公開する国・地域も選びます。
+6. **Properties** で機能に合うカテゴリーを選びます。サポート先のURLやメールアドレスは任意ですが、用意しておくと問い合わせを受けられます。
+7. **Privacy** に下のSingle purpose、権限2件の理由を貼り付けます。Remote codeは **No**。公開確認したGitHub PagesのURLをPrivacy policy URLに入力します。データ利用の申告は、外部収集・送信なし、端末内保存・クリップボード書き込み・JSON書き出しという実態と一致させてください。
+8. **Store listings** で日本語・英語のページを開き、下の説明文、`logo-300.png`、各言語の2枚の掲載画像を登録します。日本語・英語が自動で検出されなければ、言語の追加を確認してください。
+9. 必要な入力がCompleteになったら **Publish**。提出画面の **Notes for certification** に下の審査メモを貼り、最後の **Publish** で審査に提出します。
+10. 審査状況はPartner Centerで確認します。公式案内では審査に最大7営業日かかる場合があります。審査通過後は選んだ公開設定で公開されます。
+
+公開前に登録データをJSONバックアップしてください。開発版とストア版で拡張機能のIDが異なる場合、ローカルデータは自動移行されません。ストア版でバックアップを読み込んで移行します。
 
 ## 会社のPCで試す項目
 
@@ -95,5 +132,7 @@ No account, credentials, network connection, AI service, or access to a corporat
 - [Microsoft Edge Add-ons開発者ポリシー](https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies)
 - [manifestの短い説明文の上限](https://developer.chrome.com/docs/extensions/reference/manifest/description)
 - [開発者アカウント登録](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/create-dev-account)
+- [GitHub Pagesの作成](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
+- [GitHub Pagesの公開元の設定](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
 コードと現行要件を確認した結果です。審査の承認を保証するものではありません。申請や外部への公開はまだ行っていません。

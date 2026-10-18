@@ -92,9 +92,13 @@ node tests/browser.mjs "<Playwrightが入っているnode_modulesの絶対パス
 npm.cmd run package
 ```
 
-`dist/edge-prompt-library-0.1.0.zip` を作成します。`manifest.json` はZIPの直下にあります。開発用サーバー・テスト・スクリーンショットは含みません。
+`dist/edge-prompt-library-1.0.0.zip` を作成します。`manifest.json` はZIPの直下にあります。開発用サーバー・テスト・スクリーンショットは含みません。バージョンはmanifestから自動で取得し、設定画面にも同じ値を表示します。
 
 公開先はMicrosoft Edge Add-onsです。Partner Centerで申請します。公開前に通常のEdgeでもツールバー操作・ショートカット競合・高DPIでの表示を確認し、プライバシーポリシーをアクセス可能なURLで公開して、掲載用の説明・画像を用意してください。申請や公開はまだ行っていません。
+
+GitHub Pages用のプライバシーポリシーは `docs/index.html`、日英の掲載画像とロゴは `store-assets` にあります。[登録手順・入力する文章](STORE_SUBMISSION.md)を参照してください。
+
+ポリシーの文面を変更した場合は `npm.cmd run privacy-page` でHTMLを再生成してください。`npm.cmd run check-release` は説明文の長さ・バージョン・権限・アイコンと掲載画像の寸法などを検証します。
 
 ## English
 

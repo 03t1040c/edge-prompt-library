@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, MAX_IMPORT_BYTES, MAX_PROMPTS, emptyLibrary, makeExport, mergePrompts, normalizePrompt, normalizeSettings, parseImport, parseTags, resolveLanguage, tagColor, visiblePrompts } from './core.mjs';
+import { MAX_IMPORT_BYTES, MAX_PROMPTS, emptyLibrary, makeExport, mergePrompts, normalizePrompt, normalizeSettings, parseImport, parseTags, resolveLanguage, tagColor, visiblePrompts } from './core.mjs';
 import { translate } from './i18n.mjs';
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -24,6 +24,7 @@ let importData;
 let shareIds = new Set();
 let shortcut = 'Alt+Shift+P';
 const t = (key, values) => translate(language, key, values);
+const extensionVersion = chrome.runtime.getManifest().version;
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -239,7 +240,7 @@ function openSettings(focus = true) {
     el('div', { class: 'data-block' }, el('h3', {}, t('import')), el('p', {}, t('importNote')), button(t('import'), () => $('#import-file').click(), { secondary: true, name: 'upload' })),
     el('div', { class: 'data-block' }, el('h3', {}, t('share')), el('p', {}, t('shareNote')), button(t('choosePrompts'), openShare, { secondary: true, name: 'share', disabled: !library.prompts.length })));
   const privacy = el('aside', { class: 'local-notice' }, el('div', { class: 'notice-title' }, icon('lock'), t('localTitle')), el('p', {}, t('localText')), el('p', { class: 'storage-note' }, t('storageNote')));
-  openPanel('settings', t('settings'), el('div', { class: 'panel-body' }, appearance, data, privacy, el('p', { class: 'version' }, 'Prompt Library · 0.1.0')), null, focus);
+  openPanel('settings', t('settings'), el('div', { class: 'panel-body' }, appearance, data, privacy, el('p', { class: 'version' }, `Prompt Library · ${extensionVersion}`)), null, focus);
 }
 function readEditorDraft() {
   const form = $('#editor-form'); if (!form) return null;
