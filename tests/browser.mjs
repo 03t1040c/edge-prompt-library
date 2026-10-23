@@ -52,8 +52,9 @@ try {
   await page.locator('#prompt-title').fill('下書きのテスト');
   await page.locator('#prompt-content').fill('これは書きかけの内容です');
   await page.getByRole('button', { name: 'キャンセル', exact: true }).click();
+  await page.reload(); await ready();
   await page.getByRole('button', { name: 'プロンプトを追加', exact: true }).click();
-  check('unfinished draft is restored', await page.locator('#prompt-title').inputValue() === '下書きのテスト');
+  check('unfinished draft is lazily restored after reopening the popup', await page.locator('#prompt-title').inputValue() === '下書きのテスト');
   await page.getByRole('button', { name: '書きかけを破棄', exact: true }).click();
   await page.getByRole('button', { name: '設定', exact: true }).click();
   await page.getByLabel('言語 / Language').selectOption('en');
@@ -180,7 +181,11 @@ try {
     const readyTimes = samples.map(s => s.ready).sort((a, b) => a - b);
     measurements.push({ count, medianMs: readyTimes[5], maxMs: readyTimes.at(-1), samples });
     check(`${count} prompts: all 10 document loads ready within 500ms (max ${readyTimes.at(-1).toFixed(1)}ms)`, readyTimes.at(-1) < 500);
-    if (count === 2000) check('initial DOM is limited to 40 cards', await page.locator('.prompt-card').count() === 40);
+    if (count === 2000) {
+      check('initial DOM is limited to 12 cards', await page.locator('.prompt-card').count() === 12);
+      await page.getByRole('button', { name: 'さらに表示', exact: true }).click();
+      check('more prompts remain accessible without copying', await page.locator('.prompt-card').count() === 36);
+    }
   }
   // Genuine action popup opening. Edge does not expose this target as a Playwright Page.
   await seed(fixture);

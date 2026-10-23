@@ -17,5 +17,5 @@ export const messages = {
 export function translate(language, key, values = {}) {
   return (messages[language]?.[key] ?? messages.en[key] ?? key).replace(/\{(\w+)\}/gu, (_, name) => String(values[name] ?? ''));
 }
-Object.assign(messages.ja, { moreTags: 'タグを選ぶ', tagSearch: 'タグを検索', usesShort: '{n}回' });
-Object.assign(messages.en, { moreTags: 'More tags', tagSearch: 'Search tags', usesShort: '{n} uses' });
+Object.assign(messages.ja, { moreTags: 'タグを選ぶ', tagSearch: 'タグを検索', usesShort: '{n}回', promptMissing: 'このプロンプトは別の画面で削除されています。ライブラリーを開き直してください。' });
+Object.assign(messages.en, { moreTags: 'More tags', tagSearch: 'Search tags', usesShort: '{n} uses', promptMissing: 'This prompt was deleted in another view. Please reopen the library.' });

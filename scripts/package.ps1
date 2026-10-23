@@ -12,7 +12,7 @@ $outputStream = [IO.File]::Open($zipPath, [IO.FileMode]::Create, [IO.FileAccess]
 try {
   $archive = [IO.Compression.ZipArchive]::new($outputStream, [IO.Compression.ZipArchiveMode]::Create, $true)
   try {
-    $files = Get-ChildItem -LiteralPath $extensionPath -File -Recurse | Sort-Object FullName
+    $files = Get-ChildItem -LiteralPath $extensionPath -File -Recurse | Where-Object { $_.Extension -ne '.mjs' } | Sort-Object FullName
     foreach ($file in $files) {
       $entryName = $file.FullName.Substring($extensionPath.Length + 1).Replace('\', '/')
       [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null

@@ -1,5 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { buildPopupSource } from './build-popup.mjs';
 const root = new URL('../', import.meta.url);
 const extension = new URL('extension/', root);
 const json = async url => JSON.parse(await readFile(url, 'utf8'));
@@ -12,8 +13,10 @@ assert.deepEqual([...manifest.permissions].sort(), ['clipboardWrite', 'storage']
 assert.equal(manifest.host_permissions?.length || 0, 0);
 assert.equal(manifest.optional_host_permissions?.length || 0, 0);
 assert.match(manifest.content_security_policy.extension_pages, /connect-src 'none'/u);
-const known = new Set(['manifest.json', 'background.js', 'core.mjs', 'i18n.mjs', 'popup.mjs', 'popup.css', 'popup.html', 'icons', '_locales']);
+const known = new Set(['manifest.json', 'background.js', 'core.mjs', 'i18n.mjs', 'popup.mjs', 'popup.js', 'popup.css', 'popup.html', 'icons', '_locales']);
 for (const name of await readdir(extension)) assert.ok(known.has(name), `Unexpected file or directory in package: ${name}`);
+assert.equal(await readFile(new URL('popup.js', extension), 'utf8'), await buildPopupSource(), 'popup.js is outdated; run npm run build');
+assert.match(await readFile(new URL('popup.html', extension), 'utf8'), /<script defer src="popup\.js"><\/script>/u);
 for (const locale of ['en', 'ja']) {
   const messages = await json(new URL(`_locales/${locale}/messages.json`, extension));
   assert.ok(messages.extensionName.message.length > 0 && messages.extensionName.message.length <= 75);

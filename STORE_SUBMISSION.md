@@ -1,6 +1,6 @@
 # Microsoft Edge Add-ons 申請前の確認
 
-確認日：2026-10-18
+更新日：2026-10-23
 
 ## 現在の状態
 
@@ -9,9 +9,9 @@
 - 外部通信・リモートコード・外部フォント・分析ツール・アカウント・自動同期なし。
 - 日本語・英語のUIと拡張機能情報あり。
 - 英語のmanifest説明は125文字に修正済み（上限132文字）。
-- ユニットテスト10件、ブラウザーテスト38項目が成功。
+- ユニットテスト10件、ブラウザーテスト39項目、最終回帰テスト15項目が成功。[最終チェック結果](FINAL_CHECK.md)を参照。
 - 掲載用ロゴ：`store-assets/logo-300.png`。
-- 申請パッケージ：`dist/edge-prompt-library-1.0.0.zip`。manifestはZIP直下。古い0.1.0ではなくこちらを提出してください。
+- 最新パッケージ：`dist/edge-prompt-library-1.0.1.zip`。起動を軽くし、画面切り替え・同時保存・バックアップの不具合を修正した更新版です。manifestはZIP直下。
 - GitHub Pages用プライバシーポリシー：`docs/index.html`。`PRIVACY.md` から生成しています。
 - 日本語の掲載画像：`store-assets/library-ja-1280x800.png`、`store-assets/settings-ja-1280x800.png`。
 - 英語の掲載画像：`store-assets/library-en-1280x800.png`、`store-assets/settings-en-1280x800.png`。
@@ -27,7 +27,7 @@
 5. 日英それぞれ上記の1280×800px画像を2枚登録できます。スクリーンショット自体は任意ですが、規定サイズで準備済みです。`test-results` の440×600px画像は提出しません。
 6. 推奨：問い合わせ用メールアドレス、またはサポートページを登録。
 
-正式版は1.0.0にそろえました。設定画面はmanifestからバージョンを取得するため、今後の更新時にも表示が一致します。
+現在は速度改善版1.0.1です。設定画面はmanifestからバージョンを取得します。すでに登録した製品の更新では、別の拡張機能を新規作成せず、既存製品のPackagesから更新版ZIPを登録してください。ストアへの反映はまだ行っていません。
 
 ## GitHub Pagesでポリシーを公開
 
@@ -51,7 +51,7 @@ GitHub FreeでPagesを使う場合、公開元のリポジトリはpublicであ�
 1. [Partner Center](https://partner.microsoft.com/dashboard)に**個人用Microsoftアカウント（MSA）**でサインインします。Microsoft Edgeプログラムの登録料は無料です。仕事・学校アカウントだけではEdgeプログラムに登録できません。
 2. 初回は **Account settings → Programs → Microsoft Edge → Get started**。個人制作として公開するなら **Individual** を選びます。会社として公開する場合は **Company** を選び、会社の確認手続きを進めます。国・地域とアカウント種別は登録後に変更できないため、入力時に確認してください。
 3. 登録確認が完了したら **Home → Workspaces → Edge → Create new extension**。
-4. **Packages** に `dist/edge-prompt-library-1.0.0.zip` をアップロードし、検証結果を確認します。
+4. **Packages** に `dist/edge-prompt-library-1.0.1.zip` をアップロードし、検証結果を確認します。
 5. **Availability** では一般公開なら **Public**。検索には出さずURLで配布する場合は **Hidden**。公開する国・地域も選びます。
 6. **Properties** で機能に合うカテゴリーを選びます。サポート先のURLやメールアドレスは任意ですが、用意しておくと問い合わせを受けられます。
 7. **Privacy** に下のSingle purpose、権限2件の理由を貼り付けます。Remote codeは **No**。公開確認したGitHub PagesのURLをPrivacy policy URLに入力します。データ利用の申告は、外部収集・送信なし、端末内保存・クリップボード書き込み・JSON書き出しという実態と一致させてください。

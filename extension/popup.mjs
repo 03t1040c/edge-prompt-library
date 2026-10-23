@@ -11,8 +11,9 @@ let language = resolveLanguage('auto', navigator.language);
 let filters = { query: '', tag: '', favorites: false };
 let results = [];
 let selectedId = null;
-let renderLimit = 40;
+let renderLimit = 12;
 let panelType = null;
+let viewRevision = 0;
 let previousFocus = null;
 let draft = null;
 let draftTimer;
@@ -23,8 +24,16 @@ let writeQueue = Promise.resolve();
 let importData;
 let shareIds = new Set();
 let shortcut = 'Alt+Shift+P';
+let shortcutRequested = false;
+let draftLoaded = false;
+let draftRead = null;
+let tagSnapshot = { prompts: null, language: '', tags: [] };
+let numberFormat;
+let numberLanguage;
 const t = (key, values) => translate(language, key, values);
 const extensionVersion = chrome.runtime.getManifest().version;
+const initialRenderLimit = () => library.settings.size === 'large' ? 24 : 12;
+const formatNumber = value => numberFormat.format(value);
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -57,12 +66,12 @@ function toast(key, values, error = false) {
   toastTimer = setTimeout(() => { node.hidden = true; }, error ? 4500 : 2200);
 }
 function report(error, fallback = 'error') {
-  const key = ['invalidPrompt', 'tooLong', 'invalidTags', 'fileTooLarge', 'invalidJson', 'invalidFile', 'tooMany', 'duplicateIds'].includes(error?.message) ? error.message : fallback;
+  const key = ['invalidPrompt', 'tooLong', 'invalidTags', 'fileTooLarge', 'invalidJson', 'invalidFile', 'tooMany', 'duplicateIds', 'promptMissing'].includes(error?.message) ? error.message : fallback;
   toast(key, {}, true);
 }
-// Serialize writes. Read current disk data at mutation time, avoiding stale-popup overwrites.
+// Serialize writes across all extension views, not just this popup's queue.
 function mutate(update) {
-  const operation = writeQueue.then(async () => {
+  const operation = writeQueue.then(() => navigator.locks.request('prompt-library-write', async () => {
     const { library: stored } = await chrome.storage.local.get('library');
     const next = stored ? { ...stored, settings: normalizeSettings(stored.settings) } : emptyLibrary();
     const result = update(next);
@@ -72,13 +81,14 @@ function mutate(update) {
     await chrome.storage.local.set({ library: next });
     library = next;
     return result;
-  });
+  }));
   writeQueue = operation.catch(() => {});
   return operation;
 }
 function applyAppearance() {
   const settings = library.settings;
   language = resolveLanguage(settings.language, navigator.language);
+  if (numberLanguage !== language) { numberFormat = new Intl.NumberFormat(language); numberLanguage = language; }
   document.documentElement.lang = language;
   const [width, height] = settings.size === 'small' ? [360, 480] : settings.size === 'large' ? [760, 600] : [440, 600];
   document.documentElement.style.setProperty('--width', `${width}px`);
@@ -98,10 +108,13 @@ function applyAppearance() {
 function renderFilters() {
   const root = $('#filters');
   const focusedTag = root.querySelector(':focus')?.dataset.tag;
-  const registeredTags = new Set();
-  for (const prompt of library.prompts) for (const tag of prompt.tags) registeredTags.add(tag);
-  if (filters.tag && !registeredTags.has(filters.tag)) filters.tag = '';
-  const allTags = [...registeredTags].sort(new Intl.Collator(language).compare);
+  if (tagSnapshot.prompts !== library.prompts || tagSnapshot.language !== language) {
+    const registeredTags = new Set();
+    for (const prompt of library.prompts) for (const tag of prompt.tags) registeredTags.add(tag);
+    tagSnapshot = { prompts: library.prompts, language, tags: [...registeredTags].sort(new Intl.Collator(language).compare) };
+  }
+  const allTags = tagSnapshot.tags;
+  if (filters.tag && !allTags.includes(filters.tag)) filters.tag = '';
   const firstTags = allTags.slice(0, 12);
   if (filters.tag && !firstTags.includes(filters.tag)) firstTags[11] = filters.tag;
   const tags = firstTags.map(tag => el('button', {
@@ -110,7 +123,7 @@ function renderFilters() {
       filters.tag = filters.tag === tag ? '' : tag; refresh(true);
     }
   }, el('span', { class: 'filter-label' }, tag)));
-  if (allTags.length > 12) tags.push(el('button', { type: 'button', class: 'icon-button tag-overflow', title: t('moreTags'), 'aria-label': t('moreTags'), onclick: () => openTags(registeredTags) }, '…'));
+  if (allTags.length > 12) tags.push(el('button', { type: 'button', class: 'icon-button tag-overflow', title: t('moreTags'), 'aria-label': t('moreTags'), onclick: () => openTags(allTags) }, '…'));
   const scroll = root.scrollLeft;
   root.replaceChildren(...tags); root.hidden = !allTags.length; root.scrollLeft = scroll;
   if (focusedTag !== undefined) [...root.querySelectorAll('[data-tag]')].find(node => node.dataset.tag === focusedTag)?.focus({ preventScroll: true });
@@ -118,11 +131,10 @@ function renderFilters() {
   favorite.classList.toggle('active', filters.favorites);
   favorite.setAttribute('aria-pressed', String(filters.favorites));
 }
-function openTags(registeredTags) {
+function openTags(allTags) {
   let limit = 40;
   const input = el('input', { type: 'search', placeholder: t('tagSearch'), 'aria-label': t('tagSearch'), oninput: () => { limit = 40; render(); } });
   const matches = el('div', { class: 'tag-picker' });
-  const allTags = [...registeredTags].sort(new Intl.Collator(language).compare);
   function render() {
     const query = input.value.normalize('NFKC').toLowerCase();
     const tags = allTags.filter(tag => tag.normalize('NFKC').toLowerCase().includes(query));
@@ -141,7 +153,7 @@ function renderCard(prompt) {
   const copy = button(t('copy'), () => copyPrompt(prompt.id));
   copy.className = 'copy-area'; copy.setAttribute('aria-label', `${t('copy')}: ${prompt.title}`);
   copy.replaceChildren(el('span', { class: 'card-title', title: prompt.title }, prompt.title),
-    el('span', { class: 'card-usage', title: t('uses', { n: prompt.usageCount.toLocaleString(language) }) }, el('span', { class: 'usage-count' }, t('usesShort', { n: prompt.usageCount.toLocaleString(language) }))),
+    el('span', { class: 'card-usage', title: t('uses', { n: formatNumber(prompt.usageCount) }) }, el('span', { class: 'usage-count' }, t('usesShort', { n: formatNumber(prompt.usageCount) }))),
     el('span', { class: 'card-line-two' }, prompt.tags.length ? tags : null,
     // Preview a bounded excerpt; copying always uses the complete original text.
     el('span', { class: 'card-content' }, prompt.content.slice(0, 400).replace(/\s+/gu, ' '))));
@@ -163,19 +175,19 @@ function renderList() {
   } else {
     for (const prompt of results.slice(0, renderLimit)) fragment.append(renderCard(prompt));
     if (results.length > renderLimit) fragment.append(button(t('more'), () => {
-      renderLimit += 40; renderList();
+      renderLimit += 24; renderList();
     }, { secondary: true, full: true }));
   }
   list.replaceChildren(fragment); list.scrollTop = scroll;
   list.setAttribute('aria-busy', 'false');
 }
 function refresh(reset = false) {
-  if (reset) { renderLimit = 40; selectedId = null; list.scrollTop = 0; }
+  if (reset) { renderLimit = initialRenderLimit(); selectedId = null; list.scrollTop = 0; }
   renderFilters();
   results = visiblePrompts(library.prompts, { ...filters, sort: library.settings.sort, language });
   if (selectedId && !results.some(p => p.id === selectedId)) selectedId = null;
   renderList();
-  $('#result-count').textContent = t(filters.query || filters.tag || filters.favorites ? 'results' : 'count', { n: results.length.toLocaleString(language), total: library.prompts.length.toLocaleString(language) });
+  $('#result-count').textContent = t(filters.query || filters.tag || filters.favorites ? 'results' : 'count', { n: formatNumber(results.length), total: formatNumber(library.prompts.length) });
   $('#clear-search').hidden = !filters.query;
   $('#search-key').hidden = !library.settings.keyboardEnabled || Boolean(filters.query);
   $('#sort-label').textContent = t(library.settings.sort);
@@ -196,6 +208,7 @@ async function copyPrompt(id) {
   finally { copying = false; }
 }
 function openPanel(type, title, body, footer = null, focus = true) {
+  viewRevision++;
   if (panel.hidden) previousFocus = document.activeElement;
   panelType = type;
   panel.replaceChildren(...[el('header', { class: 'panel-header' }, iconButton('back', t('back'), closePanel), el('h2', { id: 'panel-title' }, title), iconButton('close', t('close'), closePanel)), body, footer].filter(Boolean));
@@ -205,6 +218,7 @@ function openPanel(type, title, body, footer = null, focus = true) {
 }
 function closePanel() {
   if (!confirmation.hidden) return;
+  viewRevision++;
   if (panelType === 'editor') flushDraft();
   panel.hidden = true; panelType = null;
   for (const child of $('#app').children) child.inert = false;
@@ -215,12 +229,13 @@ function selectField(label, options, value, change, note = null) {
   return el('label', { class: 'field' }, el('span', {}, label), select, note ? el('small', {}, note) : null);
 }
 async function saveSetting(key, value) {
+  const requestedView = viewRevision;
   try {
     await mutate(data => { data.settings[key] = value; });
     const scroll = $('.panel-body', panel)?.scrollTop || 0;
-    applyAppearance(); refresh(key === 'sort');
-    if (key === 'language') { openSettings(false); $('.panel-body', panel).scrollTop = scroll; }
-  } catch (error) { report(error, 'storageError'); if (panelType === 'settings') openSettings(false); }
+    applyAppearance(); refresh(key === 'sort' || key === 'size');
+    if (key === 'language' && panelType === 'settings' && viewRevision === requestedView) { openSettings(false); $('.panel-body', panel).scrollTop = scroll; }
+  } catch (error) { report(error, 'storageError'); if (panelType === 'settings' && viewRevision === requestedView) openSettings(false); }
 }
 function openSettings(focus = true) {
   const settings = library.settings;
@@ -234,13 +249,21 @@ function openSettings(focus = true) {
     selectField(t('sort'), ['name', 'frequency', 'recent'].map(key => [key, t(key)]), settings.sort, value => saveSetting('sort', value), t('sortNote')),
     el('div', { class: 'field' }, el('span', {}, t('size')), el('div', { class: 'segmented', role: 'group', 'aria-label': t('size') }, sizeButtons), el('small', {}, t('sizeNote'))),
     el('div', { class: 'field' }, el('div', { class: 'toggle-row' }, el('span', { class: 'field-label' }, t('keyboard')), el('label', { class: 'toggle' }, toggle, el('span', { class: 'toggle-track' }))),
-      el('small', {}, t('keyboardNote')), el('div', { class: 'shortcut-line' }, el('kbd', {}, shortcut || t('shortcutUnavailable')), el('button', { type: 'button', class: 'text-button', onclick: () => chrome.tabs.create({ url: 'edge://extensions/shortcuts' }) }, t('shortcutSettings')))));
+      el('small', {}, t('keyboardNote')), el('div', { class: 'shortcut-line' }, el('kbd', { id: 'shortcut-label' }, shortcut || t('shortcutUnavailable')), el('button', { type: 'button', class: 'text-button', onclick: () => chrome.tabs.create({ url: 'edge://extensions/shortcuts' }) }, t('shortcutSettings')))));
   const data = el('section', { class: 'settings-section' }, el('h3', { class: 'section-title' }, t('dataHeading')),
     el('div', { class: 'data-block' }, el('h3', {}, t('backup')), el('p', {}, t('backupNote')), button(t('exportBackup'), () => download('backup'), { secondary: true, name: 'download' })),
     el('div', { class: 'data-block' }, el('h3', {}, t('import')), el('p', {}, t('importNote')), button(t('import'), () => $('#import-file').click(), { secondary: true, name: 'upload' })),
     el('div', { class: 'data-block' }, el('h3', {}, t('share')), el('p', {}, t('shareNote')), button(t('choosePrompts'), openShare, { secondary: true, name: 'share', disabled: !library.prompts.length })));
   const privacy = el('aside', { class: 'local-notice' }, el('div', { class: 'notice-title' }, icon('lock'), t('localTitle')), el('p', {}, t('localText')), el('p', { class: 'storage-note' }, t('storageNote')));
   openPanel('settings', t('settings'), el('div', { class: 'panel-body' }, appearance, data, privacy, el('p', { class: 'version' }, `Prompt Library · ${extensionVersion}`)), null, focus);
+  // Shortcut metadata is needed only in Settings, never on popup startup.
+  if (!shortcutRequested) {
+    shortcutRequested = true;
+    chrome.commands.getAll().then(commands => {
+      shortcut = commands.find(command => command.name === 'open-library')?.shortcut || '';
+      const label = $('#shortcut-label'); if (label) label.textContent = shortcut || t('shortcutUnavailable');
+    }).catch(() => { shortcutRequested = false; });
+  }
 }
 function readEditorDraft() {
   const form = $('#editor-form'); if (!form) return null;
@@ -253,9 +276,17 @@ function flushDraft() {
   // Invoked immediately, before popup disposal. No debounce-dependent data loss on close.
   chrome.storage.local.set({ draft: value }).catch(() => toast('storageError', {}, true));
 }
-function openEditor(prompt = null) {
+async function openEditor(prompt = null) {
   if (loading) return;
   if (!prompt && library.prompts.length >= MAX_PROMPTS) { toast('tooMany', {}, true); return; }
+  const requestedView = ++viewRevision;
+  if (!draftLoaded) {
+    try {
+      draftRead ||= chrome.storage.local.get('draft').then(stored => { draft = stored.draft || null; draftLoaded = true; });
+      await draftRead;
+    } catch (error) { draftRead = null; report(error, 'loadError'); return; }
+  }
+  if (viewRevision !== requestedView) return;
   const restored = draft && (prompt ? draft.id === prompt.id : !draft.id) ? draft : null;
   const values = restored || { title: prompt?.title || '', tags: prompt?.tags.join(', ') || '', content: prompt?.content || '' };
   const title = el('input', { id: 'prompt-title', value: values.title, maxLength: 160, required: true, placeholder: t('titlePlaceholder'), autocomplete: 'off' });
@@ -279,6 +310,7 @@ function openEditor(prompt = null) {
     try {
       await mutate(data => {
         const existing = prompt ? data.prompts.find(p => p.id === prompt.id) : null;
+        if (prompt && !existing) throw new Error('promptMissing');
         const updated = normalizePrompt({ ...existing, id: existing?.id || crypto.randomUUID(), title: title.value, tags: parseTags(tags.value), content: content.value });
         if (existing) data.prompts[data.prompts.indexOf(existing)] = updated;
         else { if (data.prompts.length >= MAX_PROMPTS) throw new Error('tooMany'); data.prompts.push(updated); }
@@ -308,7 +340,8 @@ function deletePrompt(id) {
 async function download(kind, ids = null) {
   try {
     await writeQueue;
-    const data = makeExport(library, kind, ids);
+    const stored = await navigator.locks.request('prompt-library-write', () => chrome.storage.local.get('library'));
+    const data = makeExport(stored.library || library, kind, ids);
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = el('a', { href: url, download: `prompt-library-${kind}-${new Date().toISOString().slice(0, 10)}.json` });
@@ -388,7 +421,7 @@ document.addEventListener('keydown', event => {
   if (event.key === 'Enter') { copyPrompt(target.closest('.prompt-card')?.dataset.id || selectedId || results[0].id); return; }
   index = index < 0 ? 0 : Math.max(0, Math.min(results.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
   selectedId = results[index].id;
-  if (index >= renderLimit) { renderLimit = Math.ceil((index + 1) / 40) * 40; renderList(); }
+  if (index >= renderLimit) { renderLimit = Math.ceil((index + 1) / 24) * 24; renderList(); }
   for (const card of list.querySelectorAll('.prompt-card')) card.classList.toggle('selected', card.dataset.id === selectedId);
   const selected = [...list.querySelectorAll('.prompt-card')].find(card => card.dataset.id === selectedId);
   selected?.scrollIntoView({ block: 'nearest' });
@@ -401,18 +434,15 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && pan
 // CSS and the shell paint independently of storage and of the service worker.
 applyAppearance();
 try {
-  const stored = await chrome.storage.local.get(['library', 'draft']);
+  const stored = await chrome.storage.local.get('library');
   if (stored.library) {
     if (!Array.isArray(stored.library.prompts) || stored.library.prompts.length > MAX_PROMPTS) throw new Error('invalidFile');
     library = { version: 1, prompts: stored.library.prompts.map(p => normalizePrompt(p)), settings: normalizeSettings(stored.library.settings) };
   }
-  draft = stored.draft || null;
-  loading = false; applyAppearance(); refresh();
+  loading = false; applyAppearance(); renderLimit = initialRenderLimit(); refresh();
   if (library.settings.keyboardEnabled) search.focus({ preventScroll: true });
   performance.mark('library-rendered');
   requestAnimationFrame(() => requestAnimationFrame(() => performance.mark('library-ready')));
-  // Shortcut metadata is deliberately outside the initial render path.
-  chrome.commands.getAll().then(commands => { shortcut = commands.find(c => c.name === 'open-library')?.shortcut || ''; }).catch(() => {});
 } catch {
   list.setAttribute('aria-busy', 'false');
   list.replaceChildren(el('div', { class: 'empty' }, el('h2', {}, t('loadError')), button(t('retry'), () => location.reload(), { secondary: true })));
